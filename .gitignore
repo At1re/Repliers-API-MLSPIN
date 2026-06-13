@@ -1,0 +1,8 @@
+# Your real API key lives here — never commit it
+config.php
+
+# Editor / OS noise
+.DS_Store
+.idea/
+.vscode/
+*.log

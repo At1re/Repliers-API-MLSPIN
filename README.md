@@ -8,6 +8,10 @@ board (Massachusetts), so it includes the property-type translation that MLSPIN
 data quietly requires. If you're integrating Repliers with an MLSPIN feed, that
 one function will save you a day of debugging (see the gotcha below).
 
+<p align="center">
+  <img src="screenshots/repliers-logo.png" alt="Repliers" width="280">
+</p>
+
 ## About this project
 
 I built a custom MLS search experience for a Massachusetts real-estate brokerage,
@@ -141,6 +145,3 @@ human-friendly names you'd show in a UI onto what the API actually expects:
   minutes to avoid hammering the API — add that in your own layer if you make
   high-traffic calls.
 
-## License
-
-MIT — do whatever you like.

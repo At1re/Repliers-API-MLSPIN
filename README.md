@@ -8,6 +8,33 @@ board (Massachusetts), so it includes the property-type translation that MLSPIN
 data quietly requires. If you're integrating Repliers with an MLSPIN feed, that
 one function will save you a day of debugging (see the gotcha below).
 
+## About this project
+
+I built a custom MLS search experience for a Massachusetts real-estate brokerage,
+replacing a paid third-party IDX widget with a self-hosted integration against the
+[Repliers.io](https://repliers.com) API: town-autocomplete search, a live results
+grid, an interactive map with clustered markers, and individual listing pages — all
+driven by real-time MLS data.
+
+This repo is the reusable heart of that work — the API client — pulled out of the
+client-specific code and cleaned up so it stands on its own.
+
+**The problem worth highlighting.** Early on, every search returned zero results
+even though the data was clearly there. The cause was a mismatch between how the MLS
+*describes* properties and how a normal UI *labels* them: MLSPIN has no "Single
+Family" property type at all — it splits houses and condos using a separate `class`
+field, files rentals under `Residential Lease`, and so on. Asking the API for the
+obvious thing matches nothing and fails silently. I traced it by querying the API's
+aggregate endpoints directly to see the real category values, then wrote a
+translation layer (`normalizePropertyParams`) that maps human-friendly UI options
+onto the schema the API actually expects. That function is the most valuable thing
+in this repo.
+
+**What I took away from it:** real-world API data rarely matches your mental model,
+and the fix is to inspect what the source actually returns rather than trust the
+field names; and that wrapping a messy third-party API behind one small, well-named
+class makes the rest of an application dramatically simpler to build and maintain.
+
 ## What's here
 
 ```
@@ -18,6 +45,7 @@ repliers-api-example/
 │   ├── get-listing.php        ← fetch one listing by MLS number
 │   └── map-clusters.php       ← map "bubble" counts for a region
 ├── config.example.php         ← copy to config.php and add your key
+├── screenshots/               ← images of the live site (for the README)
 └── .gitignore                 ← keeps config.php (your key) out of git
 ```
 
@@ -50,6 +78,20 @@ foreach ($results['listings'] as $listing) {
        . $listing['address']['city'] . "\n";
 }
 ```
+
+## Screenshots
+
+The live search experience this client powers.
+
+**Map search** — interactive map with clustered markers, filters, and a live results grid:
+
+![Map search with clustered markers](screenshots/map-search.png)
+
+**Listing detail page:**
+
+![Listing detail — top](screenshots/listing-page-1.png)
+
+![Listing detail — details](screenshots/listing-page-2.png)
 
 ## API surface
 

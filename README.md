@@ -141,6 +141,3 @@ human-friendly names you'd show in a UI onto what the API actually expects:
   minutes to avoid hammering the API — add that in your own layer if you make
   high-traffic calls.
 
-## License
-
-MIT — do whatever you like.

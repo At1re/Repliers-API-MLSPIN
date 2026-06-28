@@ -46,7 +46,8 @@ repliers-api-example/
 ├── src/RepliersClient.php     ← the client (this is the whole library)
 ├── examples/
 │   ├── search-listings.php    ← search and list results
-│   ├── get-listing.php        ← fetch one listing by MLS number
+│   ├── get-listing.php        ← one listing + style, tour & status badge
+│   ├── city-counts.php        ← listing counts per town (autocomplete data)
 │   └── map-clusters.php       ← map "bubble" counts for a region
 ├── config.example.php         ← copy to config.php and add your key
 ├── screenshots/               ← images of the live site (for the README)
@@ -102,15 +103,20 @@ The live search experience this client powers.
 | Method | What it does |
 |---|---|
 | `getListings($params, $page, $perPage)` | Search listings with filters |
-| `getListing($mlsNumber)` | Fetch one listing by MLS number |
-| `getClusters($params, $zoom)` | Map cluster counts for a viewport |
+| `getListing($mlsNumber, $includeRaw = false)` | One listing; `true` also pulls the raw MLS payload (for architectural style) |
+| `getListingsByMls($mlsNumbers)` | Several listings in one call (e.g. a "saved" list) |
+| `getClusters($params, $zoom)` | Map cluster counts ("bubbles") for a viewport |
+| `getCityCounts($params)` | `['Andover' => 88, …]` — counts per town for autocomplete |
 | `normalizePropertyParams($params)` | The MLSPIN translation (used internally) |
 | `RepliersClient::formatPrice($listing)` | `"$659,900"` |
-| `RepliersClient::photoUrl($listing)` | First photo URL (handles the CDN prefix) |
+| `RepliersClient::photoUrl($listing)` / `photoUrls($listing, $n)` | Photo URL(s), CDN-prefixed |
+| `RepliersClient::architecturalStyle($listing)` | `"Colonial"` (needs `getListing(..., true)`) |
+| `RepliersClient::virtualTourUrl($listing)` | Tour link, if any |
+| `RepliersClient::statusBadge($listing)` | `"New"` / `"Under Contract"` / `"Active"` |
 
-Common `getListings` filters: `city`, `minPrice`, `maxPrice`, `minBedrooms`,
-`minBaths`, `minSqft`, `propertyType`, `type` (`sale` | `lease`), `sortBy`,
-`status`, `state`.
+Common `getListings` filters: `city`, `area` (county), `minPrice`, `maxPrice`,
+`minBedrooms`, `minBaths`, `minSqft`, `propertyType`, `type` (`sale` | `lease`),
+`sortBy`, `status`, `state`.
 
 ## The MLSPIN gotcha (why `normalizePropertyParams` exists)
 
@@ -133,6 +139,32 @@ human-friendly names you'd show in a UI onto what the API actually expects:
 | Commercial | `class=commercial` |
 
 (When `type=lease`, the residential types flip to `Residential Lease`.)
+
+## MLSPIN field quirks (where things actually live)
+
+The property-type translation above is the biggest gotcha, but it's not the only
+one. Several useful fields live somewhere other than where you'd guess. The
+static helpers in the client wrap these so you don't have to remember them:
+
+| You want… | It is NOT in… | It's actually in… |
+|---|---|---|
+| Architectural style (Colonial/Cape/Ranch) | `details.style` (that's the *subtype*, e.g. "Single Family Residence") | `raw.ArchitecturalStyle` (an array) — and `raw` is **not returned by default**; request it with `?fields=raw` |
+| Virtual tour link | `details.virtualTourUrl` (almost always empty) | a root-level `virtualTours` array (`virtualTours[0].url`) |
+| House vs. condo | `propertyType` (it's just "Residential" for both) | the `class` field (`ResidentialProperty` / `CondoProperty` / `CommercialProperty`) |
+| Whether a sale is pending | `status` (still shows `A` / active) | `lastStatus` — `Sc` = under agreement, `Lc` = lease pending |
+
+A few more things worth knowing:
+
+- **Bulk lookup:** fetch many listings at once with repeated `mlsNumber=` params
+  (no `[]`) — `getListingsByMls()` does this.
+- **Aggregates:** add `aggregates=address.city` (or `class`, `details.style`, …)
+  with `listings=false` to get counts grouped by a field in a single call.
+  `area=Essex` scopes to a county. This is how `getCityCounts()` works — and how
+  you discover the real field values when something returns zero results.
+- **Map viewport:** pass `map` as a JSON polygon string
+  `[[[lng,lat], …]]` to limit results to a bounding box.
+- **Page size:** roughly 100 listings come back per page; walk further with
+  `pageNum`.
 
 ## Notes
 
